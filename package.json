@@ -1,0 +1,171 @@
+{
+  "name": "verilog",
+  "displayName": "verilog",
+  "description": "extension helper",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.103.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "files": [
+    "out",
+    "wasm"
+  ],
+  "activationEvents": [
+    "onCommand:verilog.findSymbol",
+    "onCommand:verilog.findSymbolApi",
+    "onCommand:verilog.indexWorkspace",
+    "onCommand:verilog.openChat",
+    "onCommand:verilog.quickChat",
+    "onLanguage:systemverilog",
+    "onLanguage:verilog"
+  ],
+  "main": "./out/chatExtension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "verilog.findSymbol",
+        "title": "Verilog: Find Symbol (Embedded)"
+      },
+      {
+        "command": "verilog.findSymbolApi",
+        "title": "Verilog: Find Symbol (API)"
+      },
+      {
+        "command": "verilog.indexWorkspace",
+        "title": "Verilog: Index Workspace"
+      },
+      {
+        "command": "verilog.openChat",
+        "title": "Verilog: Open Chat Assistant"
+      },
+      {
+        "command": "verilog.quickChat",
+        "title": "Verilog: Quick Chat"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "verilog.findSymbolApi",
+        "key": "ctrl+shift+f",
+        "mac": "cmd+shift+f",
+        "when": "editorTextFocus && (editorLangId == systemverilog || editorLangId == verilog)"
+      },
+      {
+        "command": "verilog.openChat",
+        "key": "ctrl+shift+v",
+        "mac": "cmd+shift+v"
+      },
+      {
+        "command": "verilog.quickChat",
+        "key": "ctrl+alt+v",
+        "mac": "cmd+alt+v"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "verilog.findSymbolApi",
+          "when": "editorLangId == systemverilog || editorLangId == verilog",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "verilog.findSymbol",
+          "when": "editorLangId == systemverilog || editorLangId == verilog"
+        },
+        {
+          "command": "verilog.findSymbolApi",
+          "when": "true"
+        },
+        {
+          "command": "verilog.indexWorkspace",
+          "when": "true"
+        },
+        {
+          "command": "verilog.openChat",
+          "when": "true"
+        },
+        {
+          "command": "verilog.quickChat",
+          "when": "true"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Verilog Chat Assistant",
+      "properties": {
+        "verilog.groqApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Groq API key for enhanced chat responses (optional)"
+        },
+        "verilog.enableLLM": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable LLM-powered responses"
+        }
+      }
+    },
+    "languages": [
+      {
+        "id": "systemverilog",
+        "extensions": [
+          ".sv",
+          ".svh"
+        ],
+        "aliases": [
+          "SystemVerilog"
+        ]
+      },
+      {
+        "id": "verilog",
+        "extensions": [
+          ".v",
+          ".vh"
+        ],
+        "aliases": [
+          "Verilog"
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test",
+    "start": "node out/index.js",
+    "dev": "npm run compile && npm run start",
+    "server": "npm run compile && CORE_PORT=3000 node out/index.js"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@types/vscode": "^1.91.0",
+    "@types/ws": "^8.18.1",
+    "@typescript-eslint/eslint-plugin": "^8.31.1",
+    "@typescript-eslint/parser": "^8.31.1",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.25.1",
+    "tree-sitter-cli": "^0.24.7",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "fast-glob": "^3.3.3",
+    "fuse.js": "^7.1.0",
+    "p-limit": "^6.2.0",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7",
+    "tree-sitter-systemverilog": "^0.2.1",
+    "web-tree-sitter": "^0.25.8",
+    "ws": "^8.18.3"
+  },
+  "packageManager": "pnpm@10.14.0+sha512.ad27a79641b49c3e481a16a805baa71817a04bbe06a38d17e60e2eaee83f6a146c6a688125f5792e48dd5ba30e7da52a5cda4c3992b9ccf333f9ce223af84748"
+}

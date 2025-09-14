@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verilog Core API - Web Demo</title>
+    <style>
+      body {
+        font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        background: #1e1e1e;
+        color: #d4d4d4;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .demo-section {
+        background: #252526;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border: 1px solid #3e3e42;
+      }
+      .search-box {
+        width: 100%;
+        padding: 12px;
+        font-size: 16px;
+        background: #3c3c3c;
+        border: 1px solid #555;
+        border-radius: 4px;
+        color: #d4d4d4;
+        margin-bottom: 15px;
+      }
+      .btn {
+        background: #0e639c;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-right: 10px;
+        margin-bottom: 10px;
+      }
+      .btn:hover {
+        background: #1177bb;
+      }
+      .results {
+        background: #1e1e1e;
+        border: 1px solid #3e3e42;
+        border-radius: 4px;
+        padding: 15px;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+      .result-item {
+        padding: 8px 0;
+        border-bottom: 1px solid #333;
+      }
+      .result-item:last-child {
+        border-bottom: none;
+      }
+      .result-name {
+        color: #4ec9b0;
+        font-weight: bold;
+      }
+      .result-kind {
+        color: #569cd6;
+      }
+      .result-location {
+        color: #ce9178;
+        font-size: 0.9em;
+      }
+      .result-snippet {
+        color: #d4d4d4;
+        font-style: italic;
+        margin-top: 4px;
+      }
+      .status {
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+      }
+      .status.success {
+        background: #1e3a1e;
+        border: 1px solid #4caf50;
+        color: #4caf50;
+      }
+      .status.error {
+        background: #3a1e1e;
+        border: 1px solid #f44336;
+        color: #f44336;
+      }
+      .api-info {
+        background: #2d2d30;
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+      }
+      pre {
+        background: #1e1e1e;
+        padding: 10px;
+        border-radius: 4px;
+        overflow-x: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>🔍 Verilog Core API - Web Demo</h1>
+      <p>Editor-agnostic Verilog code analysis via HTTP API</p>
+    </div>
+
+    <div class="api-info">
+      <strong>API Server:</strong> <span id="api-status">Checking...</span>
+      <button class="btn" onclick="checkHealth()">Check Health</button>
+      <button class="btn" onclick="indexRepo()">Index Repository</button>
+    </div>
+
+    <div class="demo-section">
+      <h3>🔍 Symbol Search</h3>
+      <input
+        type="text"
+        class="search-box"
+        id="searchInput"
+        placeholder="Search for symbols (e.g., alu, cpu_core, input, logic)..."
+        onkeypress="handleEnter(event)"
+      />
+      <button class="btn" onclick="search()">Search</button>
+      <button class="btn" onclick="searchModules()">Find Modules</button>
+      <div id="searchStatus"></div>
+      <div id="searchResults" class="results"></div>
+    </div>
+
+    <div class="demo-section">
+      <h3>📊 Repository Info</h3>
+      <div id="repoInfo" class="results">
+        <p>Click "Index Repository" to analyze the current codebase</p>
+      </div>
+    </div>
+
+    <div class="demo-section">
+      <h3>🌐 API Examples</h3>
+      <p>
+        This web interface demonstrates how any client can integrate with the
+        Verilog Core API:
+      </p>
+      <pre><code>// Health check
+GET http://localhost:3000/health
+
+// Index repository  
+POST http://localhost:3000/index
+{"repoPath": "."}
+
+// Search symbols
+GET http://localhost:3000/search?query=alu
+
+// Get symbol details
+GET http://localhost:3000/symbol/alu:module:0</code></pre>
+    </div>
+
+    <script>
+      const API_BASE = "http://localhost:3000";
+
+      async function makeRequest(method, endpoint, data = null) {
+        try {
+          const options = {
+            method,
+            headers: { "Content-Type": "application/json" },
+          };
+          if (data) {
+            options.body = JSON.stringify(data);
+          }
+
+          const response = await fetch(API_BASE + endpoint, options);
+          return await response.json();
+        } catch (error) {
+          return { success: false, error: error.message };
+        }
+      }
+
+      async function checkHealth() {
+        const result = await makeRequest("GET", "/health");
+        const statusEl = document.getElementById("api-status");
+        if (result.success) {
+          statusEl.innerHTML =
+            '<span style="color: #4caf50">✅ Connected</span>';
+        } else {
+          statusEl.innerHTML =
+            '<span style="color: #f44336">❌ Disconnected</span>';
+        }
+      }
+
+      async function indexRepo() {
+        showStatus("searchStatus", "Indexing repository...", "success");
+        const result = await makeRequest("POST", "/index", { repoPath: "." });
+
+        if (result.success) {
+          const { filesIndexed, modules, symbols } = result.data;
+          showStatus(
+            "searchStatus",
+            `✅ Indexed ${filesIndexed} files, ${modules.length} modules, ${symbols} symbols`,
+            "success"
+          );
+
+          let html = `<h4>📦 Repository Analysis</h4>`;
+          html += `<p><strong>Files:</strong> ${filesIndexed} | <strong>Modules:</strong> ${modules.length} | <strong>Symbols:</strong> ${symbols}</p>`;
+
+          if (modules.length > 0) {
+            html += `<h5>Modules Found:</h5>`;
+            modules.slice(0, 5).forEach((m) => {
+              html += `<div class="result-item">`;
+              html += `<span class="result-name">${m.name}</span> `;
+              html += `<span class="result-kind">(${m.ports.length} ports)</span><br>`;
+              html += `<span class="result-location">${m.filePath}:${
+                m.startLine + 1
+              }</span>`;
+              html += `</div>`;
+            });
+          }
+
+          document.getElementById("repoInfo").innerHTML = html;
+        } else {
+          showStatus("searchStatus", `❌ ${result.error}`, "error");
+        }
+      }
+
+      async function search() {
+        const query = document.getElementById("searchInput").value.trim();
+        if (!query) return;
+
+        showStatus("searchStatus", `Searching for "${query}"...`, "success");
+        const result = await makeRequest(
+          "GET",
+          `/search?query=${encodeURIComponent(query)}`
+        );
+
+        if (result.success) {
+          const { results, count } = result.data;
+          showStatus("searchStatus", `Found ${count} results`, "success");
+          displayResults(results.slice(0, 20));
+        } else {
+          showStatus("searchStatus", `❌ ${result.error}`, "error");
+        }
+      }
+
+      async function searchModules() {
+        showStatus("searchStatus", "Finding modules...", "success");
+        const result = await makeRequest(
+          "GET",
+          "/search?query=module&type=symbol"
+        );
+
+        if (result.success) {
+          const modules = result.data.results.filter(
+            (r) => r.symbol?.kind === "module"
+          );
+          showStatus(
+            "searchStatus",
+            `Found ${modules.length} modules`,
+            "success"
+          );
+          displayResults(modules);
+        } else {
+          showStatus("searchStatus", `❌ ${result.error}`, "error");
+        }
+      }
+
+      function displayResults(results) {
+        const resultsEl = document.getElementById("searchResults");
+        if (results.length === 0) {
+          resultsEl.innerHTML = "<p>No results found</p>";
+          return;
+        }
+
+        let html = "";
+        results.forEach((r, i) => {
+          html += `<div class="result-item">`;
+          html += `<span class="result-name">${
+            r.symbol?.name || "Text match"
+          }</span> `;
+          html += `<span class="result-kind">(${
+            r.symbol?.kind || r.type
+          })</span><br>`;
+          html += `<span class="result-location">${r.file.split("/").pop()}:${
+            r.line + 1
+          }</span><br>`;
+          html += `<div class="result-snippet">${r.snippet}</div>`;
+          html += `</div>`;
+        });
+        resultsEl.innerHTML = html;
+      }
+
+      function showStatus(elementId, message, type) {
+        const el = document.getElementById(elementId);
+        el.innerHTML = `<div class="status ${type}">${message}</div>`;
+      }
+
+      function handleEnter(event) {
+        if (event.key === "Enter") {
+          search();
+        }
+      }
+
+      // Initialize
+      checkHealth();
+    </script>
+  </body>
+</html>
